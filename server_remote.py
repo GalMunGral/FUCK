@@ -3,6 +3,7 @@ import select
 import socket
 import struct
 from socketserver import ThreadingTCPServer, StreamRequestHandler
+import traceback
 
 logging.basicConfig(level=logging.DEBUG)
 SOCKS_VERSION = 5
@@ -25,7 +26,14 @@ class SocksProxy(StreamRequestHandler):
         self.connection.sendall(struct.pack("!B", 0))
 
         # try connecting to remote
-        address = socket.inet_ntoa(self.connection.recv(4))
+        address_type = ord(self.connection.recv(1))
+        if address_type == IPV4:
+            address = socket.inet_ntoa(self.connection.recv(4))
+        elif address_type == DOMAINNAME:
+            domain_length = ord(self.connection.recv(1))
+            domain_name = self.connection.recv(domain_length).decode('utf-8')
+            address = socket.gethostbyname(domain_name)
+            logging.info(f'Resolved {domain_name} to {address}')
         port, = struct.unpack('!H', self.connection.recv(2))
 
         try:
@@ -38,7 +46,7 @@ class SocksProxy(StreamRequestHandler):
             reply = struct.pack("!BIH", 0, bound_addr, bound_port)
 
         except Exception as err:
-            logging.error(err)
+            traceback.print_stack()
             # failure
             reply = struct.pack("!BIH", 1, 0, 0)
 
