@@ -37,19 +37,30 @@ class SocksProxy(StreamRequestHandler):
             domain_name = self.connection.recv(domain_length).decode('utf-8')
             address = socket.gethostbyname(domain_name)
             logging.info(f'Resolved {domain_name} to {address}')
-        port = struct.unpack('!H', self.connection.recv(2))[0]
+        addr, = struct.unpack('!I', socket.inet_aton(address))
+        port, = struct.unpack('!H', self.connection.recv(2))
 
         try:
             if cmd == CONNECT:
                 remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                remote.connect((address, port))
+                remote.connect(('127.0.0.1', 2080))
+                remote.sendall('fuck-gfw'.encode('utf-8'))
+                ok = ord(remote.recv(1))
+                if ok != 0:
+                    self.server.close_request(self.request)
+                    return
+                request = struct.pack('!IH', addr, port)
+                remote.sendall(request)
+
+                ok, bound_addr, bound_port = struct.unpack("!BIH", remote.recv(7))
+                if ok != 0:
+                    self.server.close_request(self.request)
+                    return
                 logging.info(f'Connected to {address}:{port}')
             else:
                 logging.error(f'Command {cmd} not implemented!')
                 self.server.close_request(self.request)
                 return
-            bound_addr, bound_port = remote.getsockname()
-            bound_addr, = struct.unpack('!I', socket.inet_aton(bound_addr))
 
             # success
             reply = struct.pack("!BBBBIH", SOCKS_VERSION, SUCCESS, 0, IPV4, bound_addr, bound_port)
