@@ -3,8 +3,12 @@ import select
 import socket
 import struct
 from socketserver import ThreadingTCPServer, StreamRequestHandler
+import argparse
+from relay import RelayMixin
+import traceback
 
 logging.basicConfig(level=logging.DEBUG)
+
 SOCKS_VERSION = 5
 NO_AUTHENTICATION_REQUIRED = 0
 IPV4 = 1
@@ -14,89 +18,75 @@ CONNECT = 1
 SUCCESS = 0
 CONNECTION_REFUSED = 5
 
-class SocksProxy(StreamRequestHandler):
-    def handle(self):
-        ip, port = self.client_address
-        logging.info(f'Accepting connection from {ip}:{port}')
+parser = argparse.ArgumentParser()
+parser.add_argument("--host", dest="remote_ip", default="127.0.0.1")
+parser.add_argument("--port", dest="remote_port", default=2080)
+config = parser.parse_args()
 
-	    # greeting
+
+class LocalProxy(RelayMixin, StreamRequestHandler):
+    def fail(self, reason):
+        self.server.close_request(self.request)
+        raise Exception(reason)
+
+    def hello(self):
+        logging.info(f"Accepting connection from {self.client_address}")
         version, nmethods = struct.unpack("!BB", self.connection.recv(2))
         methods = [ord(self.connection.recv(1)) for _ in range(nmethods)]
-        assert version == SOCKS_VERSION
-        assert NO_AUTHENTICATION_REQUIRED in methods
+        assert version == SOCKS_VERSION and NO_AUTHENTICATION_REQUIRED in methods
+
+        # connect to remote
+        self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.remote.connect((config.remote_ip, config.remote_port))
+        self.remote.sendall("fuck-gfw".encode("utf-8"))
+
+        if ord(self.remote.recv(1)) != 0:
+            self.fail("Handshake failed")
         self.connection.sendall(struct.pack("!BB", SOCKS_VERSION, 0))
-        
-        version, cmd, _, address_type = struct.unpack("!BBBB", self.connection.recv(4))
-        assert version == SOCKS_VERSION
 
-        # try connecting to remote
+    def connect(self):
+        version, cmd, _ = struct.unpack("!BBB", self.connection.recv(3))
+        assert version == SOCKS_VERSION and cmd == CONNECT
+
+        # forward address type
+        addr_type = ord(self.connection.recv(1))
+        self.remote.sendall(bytes([addr_type]))
+
+        # forward IP address / domain name
+        if addr_type == IPV4:
+            self.remote.sendall(self.connection.recv(4))
+        elif addr_type == DOMAINNAME:
+            domain_length = ord(self.connection.recv(1))
+            self.remote.sendall(bytes([domain_length]))
+            self.remote.sendall(self.connection.recv(domain_length))
+
+        # forward port
+        self.remote.sendall(self.connection.recv(2))
+
+        if ord(self.remote.recv(1)) != 0:
+            res = struct.pack(
+                "!BBBBIH", SOCKS_VERSION, CONNECTION_REFUSED, 0, addr_type, 0, 0
+            )
+            self.connection.sendall(res)
+            self.fail("Remote failed to connect")
+        bnd_addr, bnd_port = struct.unpack("!IH", self.remote.recv(6))
+        logging.info(f"Remote server connected successfully to {bnd_addr}:{bnd_port}")
+        res = struct.pack(
+            "!BBBBIH", SOCKS_VERSION, SUCCESS, 0, IPV4, bnd_addr, bnd_port
+        )
+        self.connection.sendall(res)
+
+    def handle(self):
         try:
-            if cmd == CONNECT:
-                remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                # remote.connect(('140.80.32.42', 9090))
-                remote.connect(('127.0.0.1', 2080))
-                remote.sendall('fuck-gfw'.encode('utf-8'))
-                ok = ord(remote.recv(1))
-                if ok != 0:
-                    self.server.close_request(self.request)
-                    return
-
-                # forward address type
-                remote.sendall(struct.pack('!B', address_type))
-
-                if address_type == IPV4:
-                    # forward ip address
-                    remote.sendall(self.connection.recv(4))
-
-                elif address_type == DOMAINNAME:
-                    # forward domain name
-                    domain_length = ord(self.connection.recv(1))
-                    remote.sendall(struct.pack('!B', domain_length))
-                    remote.sendall(self.connection.recv(domain_length))
-
-                # forward port
-                remote.sendall(self.connection.recv(2))
-
-                ok, bound_addr, bound_port = struct.unpack("!BIH", remote.recv(7))
-                if ok != 0:
-                    self.server.close_request(self.request)
-                    return
-            else:
-                logging.error(f'Command {cmd} not implemented!')
-                self.server.close_request(self.request)
-                return
-
-            # success
-            reply = struct.pack("!BBBBIH", SOCKS_VERSION, SUCCESS, 0, IPV4, bound_addr, bound_port)
-
-        except Exception as err:
-            logging.error(err)
-
-            # failure
-            reply = struct.pack("!BBBBIH", SOCKS_VERSION, CONNECTION_REFUSED, 0, address_type, 0, 0)
-
-        self.connection.sendall(reply)
-
-        # connection established
-        if cmd == CONNECT and reply[1] == SUCCESS:
-            self.loop(self.connection, remote)
+            self.hello()
+            self.connect()
+            self.run_select(self.connection, self.remote)
+            # self.run_poll(self.connection, remote)
+        except:
+            traceback.print_exc()
         self.server.close_request(self.request)
 
 
-    def loop(self, client, remote):
-        while True:
-            r, _, _ = select.select([client, remote], [], [])
-
-            if client in r:
-                data = client.recv(4096)
-                if remote.send(data) <= 0:
-                    break
-
-            if remote in r:
-                data = remote.recv(4096)
-                if client.send(data) <= 0:
-                    break
-
-if __name__ == '__main__':
-    with ThreadingTCPServer(('127.0.0.1', 1080), SocksProxy) as server:
+if __name__ == "__main__":
+    with ThreadingTCPServer(("127.0.0.1", 1080), LocalProxy) as server:
         server.serve_forever()

@@ -4,6 +4,7 @@ import socket
 import struct
 from socketserver import ThreadingTCPServer, StreamRequestHandler
 import traceback
+from relay import RelayMixin
 
 logging.basicConfig(level=logging.DEBUG)
 SOCKS_VERSION = 5
@@ -15,63 +16,52 @@ CONNECT = 1
 SUCCESS = 0
 CONNECTION_REFUSED = 5
 
-class SocksProxy(StreamRequestHandler):
-    def handle(self):
-        ip, port = self.client_address
-        logging.info(f'Accepting connection from {ip}:{port}')
 
-	    # greeting
-        hello = self.connection.recv(8).decode('utf-8')
-        assert hello == 'fuck-gfw'
-        self.connection.sendall(struct.pack("!B", 0))
+class RemoteProxy(RelayMixin, StreamRequestHandler):
+    def fail(self, reason):
+        self.server.close_request(self.request)
+        raise Exception(reason)
 
-        # try connecting to remote
-        address_type = ord(self.connection.recv(1))
-        if address_type == IPV4:
+    def hello(self):
+        logging.info(f"Accepting connection from {self.client_address}")
+        hello = self.connection.recv(8).decode("utf-8")
+        assert hello == "fuck-gfw"
+        self.connection.sendall(b"\x00")
+
+    def connect(self):
+        addr_type = ord(self.connection.recv(1))
+        if addr_type == IPV4:
             address = socket.inet_ntoa(self.connection.recv(4))
-        elif address_type == DOMAINNAME:
+        elif addr_type == DOMAINNAME:
             domain_length = ord(self.connection.recv(1))
-            domain_name = self.connection.recv(domain_length).decode('utf-8')
+            domain_name = self.connection.recv(domain_length)
             address = socket.gethostbyname(domain_name)
-            logging.info(f'Resolved {domain_name} to {address}')
-        port, = struct.unpack('!H', self.connection.recv(2))
+            logging.info(f"Resolved {domain_name} to {address}")
+        (port,) = struct.unpack("!H", self.connection.recv(2))
 
         try:
-            remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            remote.connect((address, port))
-            logging.info(f'Connected to {address}:{port}')
-            bound_addr, bound_port = remote.getsockname()
-            bound_addr, = struct.unpack('!I', socket.inet_aton(bound_addr))
-            # success
-            reply = struct.pack("!BIH", 0, bound_addr, bound_port)
+            self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.remote.connect((address, port))
+            bnd_addr, bnd_port = self.remote.getsockname()
+            (bnd_addr,) = struct.unpack("!I", socket.inet_aton(bnd_addr))
+            logging.info(f"Connected to {address}:{port} -> {bnd_addr}:{bnd_port}")
+            res = struct.pack("!BIH", 0, bnd_addr, bnd_port)
+            self.connection.sendall(res)
+        except:
+            res = struct.pack("!BIH", 1, 0, 0)
+            self.connection.sendall(res)
 
-        except Exception as err:
-            traceback.print_stack()
-            # failure
-            reply = struct.pack("!BIH", 1, 0, 0)
-
-        self.connection.sendall(reply)
-
-        # connection established
-        if reply[0] == 0:
-            self.loop(self.connection, remote)
+    def handle(self):
+        try:
+            self.hello()
+            self.connect()
+            self.run_select(self.connection, self.remote)
+            # self.run_poll(self.connection, self.remote)
+        except:
+            traceback.print_exc()
         self.server.close_request(self.request)
 
 
-    def loop(self, client, remote):
-        while True:
-            r, _, _ = select.select([client, remote], [], [])
-
-            if client in r:
-                data = client.recv(4096)
-                if remote.send(data) <= 0:
-                    break
-
-            if remote in r:
-                data = remote.recv(4096)
-                if client.send(data) <= 0:
-                    break
-
-if __name__ == '__main__':
-    with ThreadingTCPServer(('127.0.0.1', 2080), SocksProxy) as server:
+if __name__ == "__main__":
+    with ThreadingTCPServer(("127.0.0.1", 2080), RemoteProxy) as server:
         server.serve_forever()
