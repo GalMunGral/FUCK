@@ -82,7 +82,7 @@ class LocalProxy(RelayMixin, StreamRequestHandler):
             self.connect()
             self.run_select(self.connection, self.remote)
             # self.run_poll(self.connection, remote)
-        except e:
+        except Exception as e:
             logging.error(e)
             # traceback.print_exc()
         self.server.close_request(self.request)
