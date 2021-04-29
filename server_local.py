@@ -20,7 +20,7 @@ CONNECTION_REFUSED = 5
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--host", dest="remote_ip", default="127.0.0.1")
-parser.add_argument("--port", dest="remote_port", default=2080)
+parser.add_argument("--port", dest="remote_port", default=2080, type=int)
 config = parser.parse_args()
 
 
