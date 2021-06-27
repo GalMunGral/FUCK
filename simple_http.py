@@ -23,9 +23,8 @@ def recv_http_message(sock):
 
 def make_request(addr_type, addr, port):
     print('make_request', addr_type, addr, port)
-    t = int(time.time())
-    addr_enc = f.encrypt_at_time(addr.encode(), t).decode()
-    port_enc = f.encrypt_at_time(str(port).encode(), t).decode()
+    addr_enc = f.encrypt(addr.encode()).decode()
+    port_enc = f.encrypt(str(port).encode()).decode()
     return 'GET / HTTP/1.1\r\n' + \
         f'Type: {addr_type}\r\n' + \
         f'X-TOKEN-A: {addr_enc}\r\n' + \
@@ -41,9 +40,8 @@ def make_empty_response():
 def make_response(addr, port):
     print('make_response', addr, port)
     try:
-        t = int(time.time())
-        addr_enc = f.encrypt_at_time(addr.encode(), t).decode()
-        port_enc = f.encrypt_at_time(str(port).encode(), t).decode()
+        addr_enc = f.encrypt(addr.encode()).decode()
+        port_enc = f.encrypt(str(port).encode()).decode()
 
         html = '<h1>Hey there!</h1>'
         # html = ''
@@ -77,9 +75,8 @@ def parse_headers(header_str):
     if 'X-TOKEN-P' not in parsed: return None
 
     try:
-        t = int(time.time())
-        parsed['X-TOKEN-A'] = f.decrypt_at_time(parsed['X-TOKEN-A'].encode(), 2, t).decode()
-        parsed['X-TOKEN-P'] = int(f.decrypt_at_time(parsed['X-TOKEN-P'].encode(), 2, t).decode())
+        parsed['X-TOKEN-A'] = f.decrypt(parsed['X-TOKEN-A'].encode(), 2).decode()
+        parsed['X-TOKEN-P'] = int(f.decrypt(parsed['X-TOKEN-P'].encode(), 2).decode())
     except Exception as e:
         # logging.error(e)
         traceback.print_exc()
