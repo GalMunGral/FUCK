@@ -1,11 +1,5 @@
-import logging
-import select
-import socket
-import struct
+import logging, socket, struct, selectors, argparse, traceback
 from socketserver import ThreadingTCPServer, StreamRequestHandler
-import argparse
-from relay import RelayMixin
-import traceback
 from simple_http import make_request, recv_http_message
 
 logging.basicConfig(level=logging.DEBUG)
@@ -25,8 +19,11 @@ parser.add_argument("--port", dest="remote_port", default=2080, type=int)
 parser.add_argument("--listen", dest="local_port", default=1080, type=int)
 config = parser.parse_args()
 
+sel = selectors.DefaultSelector()
+def forward(sock_a, sock_b, size = 4096):
+    sock_b.send(sock_a.recv(size))
 
-class LocalProxy(RelayMixin, StreamRequestHandler):
+class LocalProxy(StreamRequestHandler):
     def fail(self, reason):
         self.server.close_request(self.request)
         raise Exception(reason)
@@ -83,18 +80,16 @@ class LocalProxy(RelayMixin, StreamRequestHandler):
             "!BBBBIH", SOCKS_VERSION, SUCCESS, 0, IPV4, bnd_addr_n, bnd_port
         )
         self.connection.sendall(res)
+    
 
     def handle(self):
-        try:
-            self.hello()
-            self.connect()
-            self.run_select(self.connection, self.remote)
-            # self.run_poll(self.connection, remote)
-        except Exception as e:
-            # logging.error(e)
-            traceback.print_exc()
-        self.server.close_request(self.request)
-
+        self.hello()
+        self.connect()
+        sel.register(self.connection, selectors.EVENT_READ, self.remote)
+        sel.register(self.remote, selectors.EVENT_READ, self.connection)
+        while True:
+           for key, _ in sel.select():
+               forward(key.fileobj, key.data)
 
 if __name__ == "__main__":
     with ThreadingTCPServer(("127.0.0.1", config.local_port), LocalProxy) as server:
