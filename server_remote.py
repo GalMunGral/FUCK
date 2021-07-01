@@ -1,10 +1,6 @@
-import logging
-import select
-import socket
-import struct
+import logging, selectors, socket, traceback
 from socketserver import ThreadingTCPServer, StreamRequestHandler
-import traceback
-from relay import RelayMixin
+from simple_http import recv_http_message, make_response, make_empty_response
 
 logging.basicConfig(level=logging.DEBUG)
 SOCKS_VERSION = 5
@@ -16,52 +12,57 @@ CONNECT = 1
 SUCCESS = 0
 CONNECTION_REFUSED = 5
 
+sel = selectors.DefaultSelector()
+def forward(sock_a, sock_b, size = 4096):
+    sock_b.send(sock_a.recv(size))
 
-class RemoteProxy(RelayMixin, StreamRequestHandler):
+class RemoteProxy(StreamRequestHandler):
     def fail(self, reason):
         self.server.close_request(self.request)
         raise Exception(reason)
 
-    def hello(self):
-        logging.info(f"Accepting connection from {self.client_address}")
-        hello = self.connection.recv(8).decode("utf-8")
-        assert hello == "fuck-gfw"
-        self.connection.sendall(b"\x00")
-
     def connect(self):
-        addr_type = ord(self.connection.recv(1))
-        if addr_type == IPV4:
-            address = socket.inet_ntoa(self.connection.recv(4))
-        elif addr_type == DOMAINNAME:
-            domain_length = ord(self.connection.recv(1))
-            domain_name = self.connection.recv(domain_length)
+        logging.info(f"Accepting connection from {self.client_address}")
+        
+        req = recv_http_message(self.connection)
+        if not req:
+            res = make_empty_response()
+            self.connection.sendall(res.encode())
+            self.fail('Invalid request')
+            return
+
+        addr_type = req['Type']
+        port = req['X-TOKEN-P']
+
+        if addr_type == 'V4':
+            address = req['X-TOKEN-A']
+        elif addr_type == 'DN':
+            domain_name = req['X-TOKEN-A']
             address = socket.gethostbyname(domain_name)
             logging.info(f"Resolved {domain_name} to {address}")
-        (port,) = struct.unpack("!H", self.connection.recv(2))
 
         try:
             self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.remote.connect((address, port))
             bnd_addr, bnd_port = self.remote.getsockname()
-            (bnd_addr,) = struct.unpack("!I", socket.inet_aton(bnd_addr))
             logging.info(f"Connected to {address}:{port} -> {bnd_addr}:{bnd_port}")
-            res = struct.pack("!BIH", 0, bnd_addr, bnd_port)
-            self.connection.sendall(res)
-        except:
-            res = struct.pack("!BIH", 1, 0, 0)
-            self.connection.sendall(res)
+
+            res = make_response(bnd_addr, bnd_port)
+            self.connection.sendall(res.encode())
+        except Exception as e:
+            # logging.error(e)
+            traceback.print_exc()
+            res = make_empty_response()
+            self.connection.sendall(res.encode())
+            self.fail('Failed to connect to server')
 
     def handle(self):
-        try:
-            self.hello()
-            self.connect()
-            self.run_select(self.connection, self.remote)
-            # self.run_poll(self.connection, self.remote)
-        except Exception as e:
-            logging.error(e)
-            # traceback.print_exc()
-        self.server.close_request(self.request)
-
+        self.connect()
+        sel.register(self.connection, selectors.EVENT_READ, self.remote)
+        sel.register(self.remote, selectors.EVENT_READ, self.connection)
+        while True:
+           for key, _ in sel.select():
+               forward(key.fileobj, key.data)
 
 if __name__ == "__main__":
     with ThreadingTCPServer(("0.0.0.0", 9090), RemoteProxy) as server:
