@@ -1,11 +1,6 @@
-import logging
-import select
-import socket
-import struct
+import logging, selectors, socket, struct, argparse, traceback
 from socketserver import ThreadingTCPServer, StreamRequestHandler
-import argparse
-from relay import RelayMixin
-import traceback
+from BaseProxy import BaseProxy
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -24,13 +19,9 @@ parser.add_argument("--port", dest="remote_port", default=2080, type=int)
 config = parser.parse_args()
 
 
-class LocalProxy(RelayMixin, StreamRequestHandler):
-    def fail(self, reason):
-        self.server.close_request(self.request)
-        raise Exception(reason)
-
-    def hello(self):
-        logging.info(f"Accepting connection from {self.client_address}")
+class LocalProxy(BaseProxy, StreamRequestHandler):
+    def accept(self):
+        logging.info(f"Accepting: {self.client_address}")
         version, nmethods = struct.unpack("!BB", self.connection.recv(2))
         methods = [ord(self.connection.recv(1)) for _ in range(nmethods)]
         assert version == SOCKS_VERSION and NO_AUTHENTICATION_REQUIRED in methods
@@ -38,7 +29,7 @@ class LocalProxy(RelayMixin, StreamRequestHandler):
         # connect to remote
         self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.remote.connect((config.remote_ip, config.remote_port))
-        self.remote.sendall("fuck-gfw".encode("utf-8"))
+        self.remote.sendall("fuck".encode("utf-8"))
 
         if ord(self.remote.recv(1)) != 0:
             self.fail("Handshake failed")
@@ -68,25 +59,13 @@ class LocalProxy(RelayMixin, StreamRequestHandler):
                 "!BBBBIH", SOCKS_VERSION, CONNECTION_REFUSED, 0, addr_type, 0, 0
             )
             self.connection.sendall(res)
-            self.fail("Remote failed to connect")
+            self.fail("[REMOTE] Failed to connect")
         bnd_addr, bnd_port = struct.unpack("!IH", self.remote.recv(6))
-        logging.info(f"Remote server connected successfully to {bnd_addr}:{bnd_port}")
+        logging.info(f"[REMOTE] Connected")
         res = struct.pack(
             "!BBBBIH", SOCKS_VERSION, SUCCESS, 0, IPV4, bnd_addr, bnd_port
         )
         self.connection.sendall(res)
-
-    def handle(self):
-        try:
-            self.hello()
-            self.connect()
-            self.run_select(self.connection, self.remote)
-            # self.run_poll(self.connection, remote)
-        except Exception as e:
-            logging.error(e)
-            # traceback.print_exc()
-        self.server.close_request(self.request)
-
 
 if __name__ == "__main__":
     with ThreadingTCPServer(("127.0.0.1", 1080), LocalProxy) as server:
