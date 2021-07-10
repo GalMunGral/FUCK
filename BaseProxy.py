@@ -1,5 +1,5 @@
-import logging, selectors, socket, struct, argparse, traceback
-from socketserver import ThreadingTCPServer, StreamRequestHandler
+import logging, selectors
+from socketserver import StreamRequestHandler
 
 class BaseProxy(StreamRequestHandler):
     def fail(self, reason):

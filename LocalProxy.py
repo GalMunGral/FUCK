@@ -1,4 +1,4 @@
-import logging, selectors, socket, struct, argparse, traceback
+import logging, socket, struct, argparse 
 from socketserver import ThreadingTCPServer, StreamRequestHandler
 from BaseProxy import BaseProxy
 
