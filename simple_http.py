@@ -1,9 +1,6 @@
 import time
 import logging
 import traceback
-from cryptography.fernet import Fernet
-
-f = Fernet('yHwFlf0AdgEQyPQetKUvkf9kEEasmNVzAglDd2N_Mvo=')
 
 def recv_http_message(sock):
     buffer = b''
@@ -21,12 +18,10 @@ def recv_http_message(sock):
       
 
 def make_request(addr_type, addr, port):
-    addr_enc = f.encrypt(addr.encode()).decode()
-    port_enc = f.encrypt(str(port).encode()).decode()
     return 'GET / HTTP/1.1\r\n' + \
         f'Type: {addr_type}\r\n' + \
-        f'X-TOKEN-A: {addr_enc}\r\n' + \
-        f'X-TOKEN-P: {port_enc}\r\n\r\n'
+        f'X-TOKEN-A: {addr}\r\n' + \
+        f'X-TOKEN-P: {port}\r\n\r\n'
 
 
 def make_empty_response():
@@ -37,18 +32,13 @@ def make_empty_response():
 
 def make_response(addr, port):
     try:
-        addr_enc = f.encrypt(addr.encode()).decode()
-        port_enc = f.encrypt(str(port).encode()).decode()
-
         html = '<h1>Hey there!</h1>'
-    
         return 'HTTP/1.1 200 OK\r\n' + \
-            f'X-TOKEN-A: {addr_enc}\r\n' + \
-            f'X-TOKEN-P: {port_enc}\r\n' + \
+            f'X-TOKEN-A: {addr}\r\n' + \
+            f'X-TOKEN-P: {port}\r\n' + \
             f'Content-Length: {len(html)}\r\n' + \
             'Content-Type: text/html\r\n\r\n' + \
             html
-
     except Exception as e:
         traceback.print_exc()
         return make_empty_response()
@@ -70,8 +60,8 @@ def parse_headers(header_str):
     if 'X-TOKEN-P' not in parsed: return None
 
     try:
-        parsed['X-TOKEN-A'] = f.decrypt(parsed['X-TOKEN-A'].encode()).decode()
-        parsed['X-TOKEN-P'] = int(f.decrypt(parsed['X-TOKEN-P'].encode()).decode())
+        parsed['X-TOKEN-A'] = parsed['X-TOKEN-A']
+        parsed['X-TOKEN-P'] = int(parsed['X-TOKEN-P'])
     except Exception as e:
         traceback.print_exc()
         return None
