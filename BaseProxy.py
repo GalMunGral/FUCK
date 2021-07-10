@@ -2,12 +2,15 @@ import logging, selectors
 from socketserver import StreamRequestHandler
 
 class BaseProxy(StreamRequestHandler):
-    def fail(self, reason):
+    def exit(self, reason):
         self.server.close_request(self.request)
         raise Exception(reason)
 
     def forward(self, sock_a, sock_b, size = 4096):
-        sock_b.send(sock_a.recv(size))
+        chunk = sock_a.recv(size)
+        if not chunk:
+            self.exit('EOF')
+        sock_b.send(chunk)
 
     def handle(self):
         selector = selectors.DefaultSelector()
@@ -26,3 +29,5 @@ class BaseProxy(StreamRequestHandler):
             for fd in fds:
                 selector.unregister(fd)
             self.server.close_request(self.request)
+            self.remote.close()
+            

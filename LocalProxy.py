@@ -32,7 +32,7 @@ class LocalProxy(BaseProxy, StreamRequestHandler):
         self.remote.sendall("fuck".encode("utf-8"))
 
         if ord(self.remote.recv(1)) != 0:
-            self.fail("Handshake failed")
+            self.exit("Handshake failed")
         self.connection.sendall(struct.pack("!BB", SOCKS_VERSION, 0))
 
     def connect(self):
@@ -59,7 +59,7 @@ class LocalProxy(BaseProxy, StreamRequestHandler):
                 "!BBBBIH", SOCKS_VERSION, CONNECTION_REFUSED, 0, addr_type, 0, 0
             )
             self.connection.sendall(res)
-            self.fail("[REMOTE] Failed to connect")
+            self.exit("[REMOTE] Failed to connect")
         bnd_addr, bnd_port = struct.unpack("!IH", self.remote.recv(6))
         logging.info(f"[REMOTE] Connected")
         res = struct.pack(
