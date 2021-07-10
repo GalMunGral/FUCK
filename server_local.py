@@ -92,8 +92,9 @@ class LocalProxy(StreamRequestHandler):
             while True:
                 for key, _ in selector.select():
                     self.forward(key.fileobj, key.data)
-        except:
-            traceback.print_exc()
+        except Exception as e:
+            # traceback.print_exc()
+            logging.error(e)
             fds = [*selector.get_map()]
             for fd in fds:
                 selector.unregister(fd)
