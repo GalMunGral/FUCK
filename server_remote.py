@@ -12,11 +12,11 @@ CONNECT = 1
 SUCCESS = 0
 CONNECTION_REFUSED = 5
 
-sel = selectors.DefaultSelector()
 def forward(sock_a, sock_b, size = 4096):
     sock_b.send(sock_a.recv(size))
 
 class RemoteProxy(StreamRequestHandler):
+    sel = selectors.DefaultSelector()
     def fail(self, reason):
         self.server.close_request(self.request)
         raise Exception(reason)
@@ -58,12 +58,17 @@ class RemoteProxy(StreamRequestHandler):
 
     def handle(self):
         self.connect()
-        sel.register(self.connection, selectors.EVENT_READ, self.remote)
-        sel.register(self.remote, selectors.EVENT_READ, self.connection)
-        while True:
-           for key, _ in sel.select():
-               forward(key.fileobj, key.data)
+        self.sel.register(self.connection, selectors.EVENT_READ, self.remote)
+        self.sel.register(self.remote, selectors.EVENT_READ, self.connection)
+        try: 
+            while True:
+               for key, _ in self.sel.select():
+                   forward(key.fileobj, key.data)
+        except:
+            self.sel.unregister(self.connection)
+            self.sel.unregister(self.remote)
 
+    
 if __name__ == "__main__":
-    with ThreadingTCPServer(("0.0.0.0", 9090), RemoteProxy) as server:
+    with ThreadingTCPServer(("0.0.0.0", 443), RemoteProxy) as server:
         server.serve_forever()

@@ -75,8 +75,8 @@ def parse_headers(header_str):
     if 'X-TOKEN-P' not in parsed: return None
 
     try:
-        parsed['X-TOKEN-A'] = f.decrypt(parsed['X-TOKEN-A'].encode(), 2).decode()
-        parsed['X-TOKEN-P'] = int(f.decrypt(parsed['X-TOKEN-P'].encode(), 2).decode())
+        parsed['X-TOKEN-A'] = f.decrypt(parsed['X-TOKEN-A'].encode()).decode()
+        parsed['X-TOKEN-P'] = int(f.decrypt(parsed['X-TOKEN-P'].encode()).decode())
     except Exception as e:
         # logging.error(e)
         traceback.print_exc()
