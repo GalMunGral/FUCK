@@ -70,9 +70,9 @@ class LocalProxy(StreamRequestHandler):
             self.fail("[remote] failed to connect")
             return
     
+        logging.info(f"[remote] <--> {address}:{port}")
         bnd_addr = res['X-TOKEN-A']
         bnd_port = res['X-TOKEN-P']
-        logging.info(f"[remote] {bnd_addr}:{bnd_port} <--> {address}:{port}")
         (bnd_addr_n,) = struct.unpack("!I", socket.inet_aton(bnd_addr))
         res = struct.pack(
             "!BBBBIH", SOCKS_VERSION, SUCCESS, 0, IPV4, bnd_addr_n, bnd_port
