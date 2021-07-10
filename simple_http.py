@@ -17,12 +17,10 @@ def recv_http_message(sock):
     if 'Content-Length' in headers:
         content_length = int(headers['Content-Length'])
         sock.recv(content_length - (len(buffer) - i - 4))
-    print(buffer)
     return headers
       
 
 def make_request(addr_type, addr, port):
-    print('make_request', addr_type, addr, port)
     addr_enc = f.encrypt(addr.encode()).decode()
     port_enc = f.encrypt(str(port).encode()).decode()
     return 'GET / HTTP/1.1\r\n' + \
@@ -38,13 +36,11 @@ def make_empty_response():
 
 
 def make_response(addr, port):
-    print('make_response', addr, port)
     try:
         addr_enc = f.encrypt(addr.encode()).decode()
         port_enc = f.encrypt(str(port).encode()).decode()
 
         html = '<h1>Hey there!</h1>'
-        # html = ''
     
         return 'HTTP/1.1 200 OK\r\n' + \
             f'X-TOKEN-A: {addr_enc}\r\n' + \
@@ -54,7 +50,6 @@ def make_response(addr, port):
             html
 
     except Exception as e:
-        # logging.error(e)
         traceback.print_exc()
         return make_empty_response()
 
@@ -78,9 +73,7 @@ def parse_headers(header_str):
         parsed['X-TOKEN-A'] = f.decrypt(parsed['X-TOKEN-A'].encode()).decode()
         parsed['X-TOKEN-P'] = int(f.decrypt(parsed['X-TOKEN-P'].encode()).decode())
     except Exception as e:
-        # logging.error(e)
         traceback.print_exc()
         return None
 
-    print('parsed:', parsed)
     return parsed 

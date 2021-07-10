@@ -16,21 +16,20 @@ def forward(sock_a, sock_b, size = 4096):
     sock_b.send(sock_a.recv(size))
 
 class RemoteProxy(StreamRequestHandler):
-    sel = selectors.DefaultSelector()
     def fail(self, reason):
         self.server.close_request(self.request)
         raise Exception(reason)
 
-    def connect(self):
-        logging.info(f"Accepting connection from {self.client_address}")
-        
+    def accept(self):
         req = recv_http_message(self.connection)
         if not req:
             res = make_empty_response()
             self.connection.sendall(res.encode())
-            self.fail('Invalid request')
-            return
+            self.fail('invalid request')
+        logging.info(f"accepted: {self.client_address[0]} {self.client_address[1]}")
+        return req
 
+    def connect(self, req):
         addr_type = req['Type']
         port = req['X-TOKEN-P']
 
@@ -39,34 +38,37 @@ class RemoteProxy(StreamRequestHandler):
         elif addr_type == 'DN':
             domain_name = req['X-TOKEN-A']
             address = socket.gethostbyname(domain_name)
-            logging.info(f"Resolved {domain_name} to {address}")
+            logging.info(f"{domain_name} ~ {address}")
 
         try:
             self.remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.remote.connect((address, port))
             bnd_addr, bnd_port = self.remote.getsockname()
-            logging.info(f"Connected to {address}:{port} -> {bnd_addr}:{bnd_port}")
-
+            logging.info(f"{bnd_addr}:{bnd_port} <--> {address}:{port}")
             res = make_response(bnd_addr, bnd_port)
             self.connection.sendall(res.encode())
+            
         except Exception as e:
-            # logging.error(e)
             traceback.print_exc()
             res = make_empty_response()
             self.connection.sendall(res.encode())
-            self.fail('Failed to connect to server')
+            self.fail('failed to connect')
 
     def handle(self):
-        self.connect()
-        self.sel.register(self.connection, selectors.EVENT_READ, self.remote)
-        self.sel.register(self.remote, selectors.EVENT_READ, self.connection)
+        selector = selectors.DefaultSelector()
         try: 
+            self.connect(self.accept())
+            selector.register(self.connection, selectors.EVENT_READ, self.remote)
+            selector.register(self.remote, selectors.EVENT_READ, self.connection)
+
             while True:
-               for key, _ in self.sel.select():
+               for key, _ in selector.select():
                    forward(key.fileobj, key.data)
         except:
-            self.sel.unregister(self.connection)
-            self.sel.unregister(self.remote)
+            traceback.print_exc()
+            fds = [*selector.get_map()]
+            for fd in fds:
+                selector.unregister(fd)
 
     
 if __name__ == "__main__":
