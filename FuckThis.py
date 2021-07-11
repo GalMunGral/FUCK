@@ -20,10 +20,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--host", dest="fuck_that_ip", default="127.0.0.1")
 parser.add_argument("--port", dest="fuck_that_port", default=1080, type=int)
 parser.add_argument("--listen", dest="fuck_this_port", default=1080, type=int)
+parser.add_argument('--verbose', action="store_true")
 config = parser.parse_args()
 
 
 class FuckThis(Fuck.Fuck):
+    def setup(self):
+        super().setup()
+        self.verbose = config.verbose
+
     def socks5_handshake_ok(self):
         self.connection.sendall(struct.pack("!BB", SOCKS_VER, SUCCESS))
 

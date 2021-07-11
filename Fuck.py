@@ -1,8 +1,14 @@
-import logging, selectors
+import logging
+import selectors
 from socket import socket
 from socketserver import StreamRequestHandler
 
+
 class Fuck(StreamRequestHandler):
+    def setup(self):
+        super().setup()
+        self.verbose = False
+
     def accept():
         pass
 
@@ -11,9 +17,11 @@ class Fuck(StreamRequestHandler):
 
     def forward(self, sock_a: socket, sock_b: socket, size: int = 4096) -> bool:
         chunk = sock_a.recv(size)
-        if not chunk: 
+        if not chunk:
             return True
         sock_b.send(chunk)
+        if self.verbose:
+            print(f'\n>>>> chunk ({len(chunk)} bytes)\n{chunk}\n<<<<')
         return False
 
     def event_loop(self, sock_a: socket, sock_b: socket):
@@ -24,7 +32,7 @@ class Fuck(StreamRequestHandler):
         while not EOF:
             for key, _ in selector.select():
                 try:
-                    EOF = self.forward(key.fileobj, key.data) 
+                    EOF = self.forward(key.fileobj, key.data)
                 except Exception as e:
                     logging.error(e)
                     break
@@ -36,4 +44,4 @@ class Fuck(StreamRequestHandler):
             self.accept()
             self.event_loop(self.connection, self.connect())
         except Exception as e:
-            logging.error(e) 
+            logging.error(e)
