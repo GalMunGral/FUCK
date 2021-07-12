@@ -27,7 +27,8 @@ then
 else
   echo "Welcome, Dr. Einstein! I know you are busy, so let's get this done quickly!"
   echo "Immigration is asking for your current address. Is it 443 Einstein Dr., sir?"
-  read -p "(Dr. Einstein's port) " EINSTEIN_PORT
+  read -p "(Dr. Einstein's port) [press RETURN to skip]" EINSTEIN_PORT
+  EINSTEIN_PORT=${EINSTEIN_PORT:-443}
   DIR=$(pwd)
   ESCAPED_DIR=${DIR//\//\\/}
   echo "Printing your SSN card..."
