@@ -1,2 +1,3 @@
 # Wormhole (Einstein-Rosen Bridge)
-Run `./start.sh`
+
+Welcome to space! Run `./start.sh` to embark on your journey.
