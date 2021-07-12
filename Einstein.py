@@ -13,7 +13,7 @@ SUCCESS = 0
 CONN_REFUSED = 5
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--listen", dest="eintein_port", default=443, type=int)
+parser.add_argument("--listen", dest="einstein_port", default=443, type=int)
 config = parser.parse_args()
 
 class Einstein(Schwarzschild):
