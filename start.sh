@@ -26,11 +26,11 @@ then
   fi
 else
   echo "Welcome, Dr. Einstein! I know you are busy, so let's get this done quickly!"
-  echo "Let's find a place to live ...could be anywhere. How about 443 Einstein Dr., sir?"
+  echo "Immigration is asking for your current address. Is it 443 Einstein Dr., sir?"
   read -p "(Dr. Einstein's port) " EINSTEIN_PORT
   DIR=$(pwd)
   ESCAPED_DIR=${DIR//\//\\/}
-  echo "Printing your boarding pass..."
+  echo "Printing your SSN card..."
   sed -e "s/<DIR>/${ESCAPED_DIR}/; s/<PORT>/${EINSTEIN_PORT}/" BoardingPass > wormhole.service
 
   echo "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
