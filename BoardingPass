@@ -3,7 +3,7 @@ Description=A Transcendental Bijection of the Spacetime Continuum
 After=network.target nss-lookup.target
 
 [Service]
-ExecStart=/usr/bin/python3 /Users/winnie.he/socks5/Einstein.py --listen 12
+ExecStart=/usr/bin/python3 <DIR>/Einstein.py --listen <PORT>
 
 [Install]
 WantedBy=multi-user.target

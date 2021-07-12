@@ -1,5 +1,6 @@
 import logging
 import socket
+import argparse
 import struct
 from Schwarzschild import Schwarzschild
 from socketserver import ThreadingTCPServer
@@ -11,6 +12,9 @@ DOMAIN_NAME = 3
 SUCCESS = 0
 CONN_REFUSED = 5
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--listen", dest="eintein_port", default=443, type=int)
+config = parser.parse_args()
 
 class Einstein(Schwarzschild):
     def handshake_ok(self):
@@ -61,5 +65,5 @@ class Einstein(Schwarzschild):
 
 
 if __name__ == "__main__":
-    with ThreadingTCPServer(("0.0.0.0", 443), Einstein) as server:
+    with ThreadingTCPServer(("0.0.0.0", config.einstein_port), Einstein) as server:
         server.serve_forever()
