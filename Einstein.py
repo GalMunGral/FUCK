@@ -1,7 +1,7 @@
 import logging
 import socket
 import struct
-import Fuck
+from Schwarzschild import Schwarzschild
 from socketserver import ThreadingTCPServer
 
 logging.basicConfig(level=logging.DEBUG)
@@ -12,24 +12,24 @@ SUCCESS = 0
 CONN_REFUSED = 5
 
 
-class FuckThat(Fuck.Fuck):
-    def fuck_handshake_ok(self):
+class Einstein(Schwarzschild):
+    def handshake_ok(self):
         self.connection.sendall(b"\x00")
 
     def accept(self):
-        the_word = (self.connection.recv(8)).decode()
-        if the_word != "fuck":
-            logging.error(f'Got the word: {the_word}')
-            raise Exception("[FUCK] I'm not ok")
-        self.fuck_handshake_ok()
+        name = self.connection.recv(9)
+        if name != b"Minkowski":
+            logging.error(f"[{name}] called but I don't feel like answering")
+            raise Exception("[EINSTEIN] I'm not ok")
+        self.handshake_ok()
         logging.info(f"Accepted {self.client_address}")
 
-    def fuck_ok(self, bnd_addr: str, bnd_port: int):
+    def ok(self, bnd_addr: str, bnd_port: int):
         (bnd_addr,) = struct.unpack("!I", socket.inet_aton(bnd_addr))
         self.connection.sendall(struct.pack(
             "!BIH", SUCCESS, bnd_addr, bnd_port))
 
-    def fuck_error(self):
+    def error(self):
         self.connection.sendall(struct.pack("!BIH", CONN_REFUSED, 0, 0))
 
     def connect(self):
@@ -49,17 +49,17 @@ class FuckThat(Fuck.Fuck):
             dest = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             dest.connect((address, port))
             bnd_addr, bnd_port = dest.getsockname()
-            self.fuck_ok(bnd_addr, bnd_port)
+            self.ok(bnd_addr, bnd_port)
             logging.info(
                 f"{bnd_addr}:{bnd_port} <--> {address}:{port}")
         except Exception as e:
             logging.error(e)
-            self.fuck_error()
-            raise Exception("[FUCK] I'm not ok")
+            self.error()
+            raise Exception("[EINSTEIN] I'm not ok")
 
         return dest
 
 
 if __name__ == "__main__":
-    with ThreadingTCPServer(("0.0.0.0", 443), FuckThat) as server:
+    with ThreadingTCPServer(("0.0.0.0", 443), Einstein) as server:
         server.serve_forever()

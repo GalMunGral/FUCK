@@ -4,7 +4,7 @@ from socket import socket
 from socketserver import StreamRequestHandler
 
 
-class Fuck(StreamRequestHandler):
+class Schwarzschild(StreamRequestHandler):
     def setup(self):
         super().setup()
         self.verbose = False

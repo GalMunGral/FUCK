@@ -1,4 +1,4 @@
-# FUCK: (F)oolproof, (U)nencrypted SO(CK)S Proxy
+# Wormhole
 
 ```bash
 cp fuck-that.service /etc/systemd/system
