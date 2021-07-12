@@ -38,6 +38,7 @@ else
   echo "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
   
   cp ./wormhole.service /etc/systemd/system
+  systemctl daemon-reload
   systemctl start wormhole
   systemctl status wormhole
   echo "All set! Have a good one, sir!"
