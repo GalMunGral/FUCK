@@ -5,7 +5,6 @@ Run `./start.sh`
 
 ```
 I.
-
     YOU -- VER (x05) -------------> ROSEN
     YOU -- NMETHODS (1) ----------> ROSEN
     YOU -- METHODS (1-255) -------> ROSEN
@@ -18,7 +17,6 @@ I.
     YOU <------------- RSV (x00) -- ROSEN
 
 II.
-
     YOU -- ATYP (x01/x03/x04) ----> ROSEN -- ATYP (x01/x03/x04) -----> EINSTEIN
     YOU -- DST.ADDR (N) ----------> ROSEN -- DST.ADDR (N) -----------> EINSTEIN
     YOU -- DST.PORT (2) ----------> ROSEN -- DST.PORT (2) -----------> EINSTEIN
@@ -26,7 +24,6 @@ II.
 III.
                                                                        EINSTEIN -- ？
 IV.
-
                                     ROSEN <---------- REP (x00/x0X) -- EINSTEIN
     YOU <------------- VER (x05) -- ROSEN
     YOU <--------- REP (x00/x0X) -- ROSEN
