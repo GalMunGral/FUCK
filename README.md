@@ -27,7 +27,7 @@ III. You tell Dr.Rosen about the mysterious man, he'll repeat your words to Dr.E
     YOU -- DST.PORT (2) ----------> ROSEN -- DST.PORT (2) -----------> EINSTEIN
 
 IV. Dr.Einstein is the one to make the first contact.
-                                                                       EINSTEIN -- <handshake> -- MYSTERIOUS MAN
+                                                                       EINSTEIN -- ？
 V. Dr.Rosen will let you know when he succeeds.
 
                                     ROSEN <---------- REP (x00/x0X) -- EINSTEIN
