@@ -23,7 +23,7 @@ Run `./start.sh`
     YOU ---- ATYP (x01/x03/x04) -->> R ---- ATYP (x01/x03/x04) ---->> E
     YOU ---- DST.ADDR (N) -------->> R ---- DST.ADDR (N) ---------->> E
     YOU ---- DST.PORT (2) -------->> R ---- DST.PORT (2) ---------->> E
-                                                                      E -- ？
+                                                                      E <<-- [handshake] -->> ? 
     YOU <<-- VER (x05) ------------- R <<-- REP (x00/x0X) ----------- E
     YOU <<-- REP (x00/x0X) --------- R
     YOU <<-- RSV (x00) ------------- R
