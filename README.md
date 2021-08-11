@@ -7,8 +7,8 @@ Run `./start.sh`
     YOU ---- 1. VER (x05) ----------->> R
     YOU ---- 1. NMETHODS (1) -------->> R
     YOU ---- 1. METHODS (1-255) ----->> R
-    YOU <<-- 2. VER (x05) ----------->> R
-    YOU <<-- 2. METHOD (x00) -------->> R
+    YOU <<-- 2. VER (x05) ------------- R
+    YOU <<-- 2. METHOD (x00) ---------- R
                                         |
                                  [if successful]
                                         | 
