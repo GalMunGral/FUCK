@@ -14,6 +14,9 @@ Run `./start.sh`
      |                               | 
     YOU ---- VER (x05) ----------->> R
     YOU ---- CMD (x01/x02/x03) --->> R
+     |                               |
+     |                       [if x01 CONNECT]
+     |                               |
      |                               R ---- SECRET ("Minkowski") -->> E
      |                               R <<-- REP (0x00) -------------- E
      |                               |                                |
