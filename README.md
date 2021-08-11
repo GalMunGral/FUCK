@@ -9,17 +9,22 @@ Run `./start.sh`
     YOU ---- 1. METHODS (1-255) ----->> R
     YOU <<-- 2. VER (x05) ----------->> R
     YOU <<-- 2. METHOD (x00) -------->> R
+                                        |
+                                 [if successful]
+                                        | 
     YOU ---- 3. VER (x05) ----------->> R
     YOU ---- 3. CMD (x01/x02/x03) --->> R
                                         R ---- SECRET ("Minkowski") -->> E
                                         R <<-- REP (0x00) -------------- E
-    YOU <<-- 4. RSV (x00) ------------- R
+                                        |
+                                 [if successful]
+                                        |
+    YOU ---- 4. RSV (x00) ----------->> R
     YOU ---- 3. ATYP (x01/x03/x04) -->> R ---- ATYP (x01/x03/x04) ---->> E
     YOU ---- 3. DST.ADDR (N) -------->> R ---- DST.ADDR (N) ---------->> E
     YOU ---- 3. DST.PORT (2) -------->> R ---- DST.PORT (2) ---------->> E
                                                                          E -- ？
-                                        R <<-- REP (x00/x0X) ----------- E
-    YOU <<-- 4. VER (x05) ------------- R
+    YOU <<-- 4. VER (x05) ------------- R <<-- REP (x00/x0X) ----------- E
     YOU <<-- 4. REP (x00/x0X) --------- R
     YOU <<-- 4. RSV (x00) ------------- R
     YOU <<-- 4. ATYP (x01) ------------ R
