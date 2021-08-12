@@ -9,8 +9,6 @@ Run `./start.sh`
     YOU ---- METHODS (1-255) ----->> R
     YOU <<-- VER (x05) ------------- R
     YOU <<-- METHOD (x00) ---------- R
-     |                              |
-     |                        [if successful]
      |                               | 
     YOU ---- VER (x05) ----------->> R
     YOU ---- CMD (x01/x02/x03) --->> R
